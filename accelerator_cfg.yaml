@@ -1,0 +1,31 @@
+#External memory
+Ext_Bandwidth: 25.6
+
+#package level
+
+W_tile: 6
+H_tile: 6
+
+#Tile level 
+
+Input_SRAM_Bank_Size: 16384
+Input_SRAM_Bank_Number: 4  
+
+W_PE: 5
+H_PE: 4
+
+#PE level
+Lanes: 8
+Vector_Width: 8
+IA_Buffer_Size: 8192 #Byte
+W_Buffer_Size: 32768
+Acc_Buffer_Size: 3072
+Acc_Bufer_Bank_Number: 2
+
+#NOC
+NOC_Latency: 2 #cycles
+NOC_Bandwidth: 70 #Gbps
+
+#NOP
+NOP_Latency: 2 #cycles
+NOP_Bandwidth: 100 #Gbps
