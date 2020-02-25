@@ -2,30 +2,27 @@ from .simobj import SimObj
 from .event import Event
 from .router import Router
 
-class GlobalBuffer(SimObj):
+class NOP(SimObj):
     def __init__(self, name):
-        super(GlobalBuffer,self).__init__(name)
+        super(NOP,self).__init__(name)
         self.event = Event(self.processEvent)
-        self.insts = []
 
     def get_type(self):
-        return "GBUF"
-
-    def load_insts(self, insts):
-        self.insts += insts
+        return "NOP"
 
     def configure(self, acc_config):
-        router_name = self.name().replace("GBUF","ROUTER-GBUF")
+        router_name = self.name().replace("NOP","NOP-ROUTER")
         router = Router(router_name)
+        router.configure(acc_config,"NOP")
         self.add_module(router)
 
     def startup(self, eventQueue):
         for module in self.modules.values():
             module.startup(eventQueue)
-        eventQueue.schedule(self.event, 100)
-
+        # eventQueue.schedule(self.event, 100)
+    
     def get_router(self):
-        router = self.modules[self.name().replace("GBUF","ROUTER-GBUF")]
+        router = self.modules[self.name().replace("NOP","NOP-ROUTER")]
         return router
 
     def connect_to(self, neighbor, direction):

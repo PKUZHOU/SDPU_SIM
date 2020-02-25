@@ -17,15 +17,20 @@ H_PE: 4
 #PE level
 Lanes: 8
 Vector_Width: 8
-IA_Buffer_Size: 8192 #Byte
-W_Buffer_Size: 32768
-Acc_Buffer_Size: 3072
+
+IA_Buffer_Depth: 1024
+IA_Buffer_Width: 8 #bytes 
+W_Buffer_Depth: 512
+W_Buffer_Width: 64
+
+Acc_Buffer_Depth: 64
+Acc_Buffer_Width: 8
 Acc_Bufer_Bank_Number: 2
 
 #NOC
 NOC_Latency: 2 #cycles
-NOC_Bandwidth: 70 #Gbps
+NOC_Bandwidth: 70 #GBps
 
 #NOP
 NOP_Latency: 2 #cycles
-NOP_Bandwidth: 100 #Gbps
+NOP_Bandwidth: 100 #GBps

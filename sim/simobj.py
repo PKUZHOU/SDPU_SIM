@@ -6,7 +6,10 @@ class SimObj:
     def add_module(self, module):
         self.modules[module.obj_name] = module
     
-    def startup(self):
+    def get_type(self):
+        raise NotImplementedError
+
+    def startup(self):  
         """
         * startup() is the final initialization call before simulation.
         * All state is initialized so this is the appropriate place to
