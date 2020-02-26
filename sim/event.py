@@ -3,37 +3,46 @@ from collections import OrderedDict
 
 class Event:
     def __init__(self, call_back):
-        self.when = 0
-        self.priority = 1
-        self.queue = None
-        self.call_back = call_back
+        self.when = 0 # when will this event be processed
+        self.eventQueue = None # the eventQueue that holds this event
+        self.call_back = call_back # the function that processes this event
+        self.eventName = ""
 
-    def setWhen(self,when, event_queue):
+    def setWhen(self, when, eventQueue):
+        """
+        Set the processing time and eventQueue of this event
+        """
         self.when = when
-        self.queue = event_queue
+        self.queue = eventQueue
 
     def process(self):
+        """
+        Call the call_back function to process this event
+        """
         if(self.call_back is not None):
             self.call_back()
     
     def name(self):
-        pass
+        return self.eventName
 
 class EventQueue:
+    """
+    Since it is an event-driven simulator, the EventQueue is the key componet that 
+    manages all the events.
+    """
     def __init__(self):
-        self.objName = ""
+        # the global time
         self.curTick = 0
+        # the eventQueue is a dict, in which the keys are the time, and values are list of evets.
         self.eventQueue = {}
-
-    def insert(self, event):
-        raise NotImplementedError
     
     def removeEvents(self, when):
+        """
+        Remove the events list at the certain time
+        Args:
+            when: the time of the events
+        """
         self.eventQueue.pop(when)
-    
-    def removeEvent(self, event):
-        raise NotImplementedError
-
     
     def getEvents(self, when):
         if(when in self.eventQueue.keys()):
@@ -41,16 +50,15 @@ class EventQueue:
         else:
             return []
 
-    def name(self):
-        return self.objName
-
     def schedule(self, event, when):
-
+        """
+        Schedule the event, set the event and add to the eventQueue
+        """
+        event.setWhen(when, self)
         if(when in self.eventQueue.keys()):
             self.eventQueue[when].append(event)
         else:
             self.eventQueue[when] = [event]
-        #TODO priority 
 
     def deschedule(self, event):
         raise NotImplementedError
@@ -59,7 +67,15 @@ class EventQueue:
         raise NotImplementedError
     
     def nextTick(self):
-        if(len(self.eventQueue)==0):
+        """
+        The next tick that events should be processed
+        Args:
+            No args
+        Returns:
+            -1: if no events
+            nextTick: the next time that some events are going to be processed
+        """
+        if(self.empty()):
             return -1
         return sorted(self.eventQueue.keys())[0]
     

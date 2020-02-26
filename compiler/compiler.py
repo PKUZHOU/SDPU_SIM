@@ -2,7 +2,7 @@ class Compiler:
     def __init__(self):
         self.acc_cfg = None
         self.nn = None
-        self.compiled_inst = []
+        self.compiled_config_regs = []
     def load_acc_cfg(self, acc_cfg):
         """
         Load the accelerator config
@@ -52,41 +52,47 @@ class Compiler:
         #TODO deal with the margine 
         
         per_tile_R = max(R//(Total_tiles),1) # output rows per tile
+        per_tile_H = max(H//(Total_tiles),1)
         #TODO deal with the margine
 
         Lanes = self.acc_cfg["Lanes"]
         Vector_width = self.acc_cfg["Vector_Width"]
         #generate the codes
         #Tile level loop 
-        insts = {}
+        config_regs = {}
         for tile_row_id in range(Tile_rows):
             for tile_col_id in range(Tile_cols):
                 tile_id_prefix = str(tile_row_id)+"-"+str(tile_col_id)
-                tile_insts = {}
+                tile_config_regs = {}
                 #PE level loop
                 for pe_row_id in range(PE_rows):
                     for pe_col_id in range(PE_cols):
                         pe_id_prefix = str(pe_row_id)+"-"+str(pe_col_id)
                         pe_name = "PE-"+ tile_id_prefix + '-'+pe_id_prefix
-                        pe_insts = []
+                        pe_config_regs = []
                         # calculate the loops per PE 
                         n_loops = max(per_pe_o//Lanes, 1) * max(per_pe_n//Vector_width, 1)\
                             * per_tile_R * C * K * K
                         # TODO: more details e.g partial sum
-                        pe_insts.append("Loop_"+str(n_loops))
-                        tile_insts[pe_name] = pe_insts
+                        pe_config_regs.append("Loop_"+str(n_loops))
+                        tile_config_regs[pe_name] = pe_config_regs
                 
-                gbuf_insts = []    
+                gbuf_config_regs = {}    
                 gbuf_name = "GBUF-"+tile_id_prefix
                 # multicast the inputs 
-                gbuf_insts.append("Multicast_"+str(per_pe_n*W*H))
+                gbuf_config_regs["Multicast"] = per_pe_n*W*per_tile_H
                 # unicast the weights
-                gbuf_insts.append("Unicast_"+str(per_pe_n*per_pe_o))
-                tile_insts[gbuf_name] = gbuf_insts
+                gbuf_config_regs["Unicast"] = per_pe_n*per_pe_o
+
+                # set the pe array shape
+                gbuf_config_regs["PE_rows"] = PE_rows
+                gbuf_config_regs["PE_cols"] = PE_cols
+ 
+                tile_config_regs[gbuf_name] = gbuf_config_regs
                 tile_name = "TILE-" + tile_id_prefix
-                insts[tile_name] = tile_insts 
+                config_regs[tile_name] = tile_config_regs 
         
-        return insts
+        return config_regs
         
     def compile_fc_layer(self, layer):
         """
@@ -105,7 +111,7 @@ class Compiler:
         print("Start compiling ...")
         # Contain the layers at the same level in the DAG
 
-        per_layer_insts = []
+        per_layer_config_regs = []
 
         cur_names = ('__INPUT__',)
         while(True):
@@ -121,7 +127,7 @@ class Compiler:
                     print("Shape ", N, H, W)
                 #convolutional layer
                 elif(layer_type == "Conv"):
-                    per_layer_insts.append(self.compile_conv_layer(layer))
+                    per_layer_config_regs.append(self.compile_conv_layer(layer))
                 #fully-connected layer
                 elif(layer_type == "FC"):
                     pass    
@@ -129,8 +135,8 @@ class Compiler:
                 next_names += self.nn.nexts(layer_name)
 
             if(next_names[0] == None):
-                return per_layer_insts
+                return per_layer_config_regs
             else:
                 #TODO deal with multi output
                 cur_names = (next_names[0],)
-        return per_layer_insts
+        return per_layer_config_regs

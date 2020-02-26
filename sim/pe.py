@@ -7,7 +7,7 @@ from .mac_vector import MAC_Vector
 class PE(SimObj):
     def __init__(self,name):
         super(PE,self).__init__(name)
-        self.event = Event(self.processEvent)
+        self.eventQueue = None
         #add router
         self.add_module(Router(self.name().replace("PE","ROUTER-PE")))
         #IA buffer
@@ -19,7 +19,7 @@ class PE(SimObj):
         #MAC vector
         self.add_module(MAC_Vector(self.name().replace("PE","MAC_VECTOR")))
 
-        self.insts = []
+        self.config_regs = []
     
     def get_type(self):
         return "PE"
@@ -28,16 +28,6 @@ class PE(SimObj):
         router_name = self.name().replace("PE","ROUTER-PE")
         router = self.modules[router_name]
         return router
-        
-    def load_insts(self, pe_insts):
-        """
-        Load the instructions 
-        Args:
-            pe_insts: A list containing all the instructions
-        Returns: 
-            No returns
-        """
-        self.insts += pe_insts
 
     def configure(self, config):
         """
@@ -80,13 +70,21 @@ class PE(SimObj):
         router = self.get_router()
         neighbor_router = neighbor.get_router()
         router.set_neighbor(neighbor_router, direction)
+        
+    def load_config_regs(self, pe_config_regs):
+        """
+        Load the config_regs
+        Args:
+            pe_config_regs: A list containing all the config_regs
+        Returns: 
+            No returns
+        """
+        self.config_regs = pe_config_regs
 
     def startup(self, eventQueue):
+        self.eventQueue = eventQueue
         for module in self.modules.values():
             module.startup(eventQueue)
-        # for module in self.modules.values():
-        #     module.startup(eventQueue)
-        # eventQueue.schedule(self.event, 100)
     
     def processEvent(self):
         print("Hello from ", self.name())

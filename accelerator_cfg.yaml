@@ -8,8 +8,14 @@ H_tile: 6
 
 #Tile level 
 
-Input_SRAM_Bank_Size: 16384
-Input_SRAM_Bank_Number: 4  
+Input_SRAM_Depth: 2048
+Input_SRAM_Width: 8  
+
+Weight_SRAM_Depth: 2048
+Weight_SRAM_Width: 8  
+
+Output_SRAM_Depth: 2048
+Output_SRAM_Width: 8  
 
 W_PE: 5
 H_PE: 4

@@ -5,7 +5,7 @@ from .router import Router
 class NOP(SimObj):
     def __init__(self, name):
         super(NOP,self).__init__(name)
-        self.event = Event(self.processEvent)
+        self.eventQueue = None
 
     def get_type(self):
         return "NOP"
@@ -16,11 +16,6 @@ class NOP(SimObj):
         router.configure(acc_config,"NOP")
         self.add_module(router)
 
-    def startup(self, eventQueue):
-        for module in self.modules.values():
-            module.startup(eventQueue)
-        # eventQueue.schedule(self.event, 100)
-    
     def get_router(self):
         router = self.modules[self.name().replace("NOP","NOP-ROUTER")]
         return router
@@ -37,6 +32,12 @@ class NOP(SimObj):
         router = self.get_router()
         neighbor_router = neighbor.get_router()
         router.set_neighbor(neighbor_router, direction)
+
+    def startup(self, eventQueue):
+        self.eventQueue = eventQueue
+        for module in self.modules.values():
+            module.startup(eventQueue)
+        
 
     def processEvent(self):
         print("Hello from ", self.name())

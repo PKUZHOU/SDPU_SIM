@@ -83,21 +83,24 @@ class System:
                     tile.connect_to(W_tile,'W')              
 
     def instantiate(self):
+        """
+        Initiate all the modules
+        """
         for module in self.modules.values():
             module.startup(self.evetq)
 
-    def load_insts(self, layer_insts):
+    def load_config_regs(self, layer_config_regs):
         """
-        Load the compiled instructions to the corresponding modules
+        Load the compiled config_regs to the corresponding modules
         Args:
-            layer_insts: dict{} the compiled instructions of a layer
+            layer_config_regs: dict{} the compiled config_regs of a layer
                 the key are the module names
         Returns:
             No returns
         """
-        for module_name, insts in layer_insts.items():
+        for module_name, config_regs in layer_config_regs.items():
             module = self.modules[module_name]
-            module.load_insts(insts)
+            module.load_config_regs(config_regs)
 
     def simulate(self):
         """
@@ -107,13 +110,13 @@ class System:
         while(True):
             curTick = self.evetq.nextTick()
             if(curTick < 0):
-                print("Simulation finished!")
                 return
             print("Tick: ",curTick)
             self.evetq.setCurTick(curTick)
             cur_events = self.evetq.getEvents(curTick)
+            # print(len(cur_events))
             for event in cur_events:
                 event.process()
+            self.evetq.removeEvents(curTick)
             #all the events within current cycle are processes
             #so we remove these events from the event queue
-            self.evetq.removeEvents(curTick)

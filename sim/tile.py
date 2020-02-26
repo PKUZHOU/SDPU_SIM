@@ -8,20 +8,11 @@ from .nop import NOP
 class Tile(SimObj):
     def __init__(self,name):
         super(Tile,self).__init__(name)
-        self.event = Event(self.processEvent)
+        self.eventQueue = None
         self.acc_config = None 
     
     def get_type(self):
         return "TILE"
-
-    def load_insts(self, tile_insts):
-        for module_name, insts in tile_insts.items():
-            self.modules[module_name].load_insts(insts)
-
-    def startup(self, eventQueue):
-        for module in self.modules.values():
-            module.startup(eventQueue)
-        # eventQueue.schedule(self.event, 100)
 
     def add_NOP(self):
         nop_name = self.name().replace("TILE","NOP")
@@ -131,6 +122,15 @@ class Tile(SimObj):
         gbuffer.connect_to(NOP,'W')
         #the local port
         NOP.connect_to(gbuffer,'L')
+
+    def load_config_regs(self, tile_config_regs):
+        for module_name, config_regs in tile_config_regs.items():
+            self.modules[module_name].load_config_regs(config_regs)
+
+    def startup(self, eventQueue):
+        self.eventQueue = eventQueue
+        for module in self.modules.values():
+            module.startup(eventQueue)
 
     def processEvent(self):
         print("Hello from ", self.name())

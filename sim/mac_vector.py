@@ -19,6 +19,5 @@ class MAC_Vector(SimObj):
         # for module in self.modules.values():
         #     module.startup(eventQueue)
         # eventQueue.schedule(self.event, 100)
-    
     def processEvent(self):
         print("Hello from ", self.name())

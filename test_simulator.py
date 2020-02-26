@@ -18,15 +18,15 @@ compiler.load_acc_cfg(acc_cfg)
 compiler.load_nn(resnet50)
 
 #compile the network
-layers_insts = compiler.compile()
+layers_config_regs = compiler.compile()
 
 sys = System(acc_cfg)
 
-for per_layer_insts in layers_insts:
-    sys.load_insts(per_layer_insts)
+for per_layer_config_regs in layers_config_regs:
+    sys.load_config_regs(per_layer_config_regs)
     break 
 
 sys.instantiate()
 sys.simulate()
-
+print("Simulation Finished!")
 
