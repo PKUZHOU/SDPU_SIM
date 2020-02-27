@@ -91,7 +91,7 @@ class Compiler:
                 tile_config_regs[gbuf_name] = gbuf_config_regs
                 tile_name = "TILE-" + tile_id_prefix
                 config_regs[tile_name] = tile_config_regs 
-        
+                
         return config_regs
         
     def compile_fc_layer(self, layer):

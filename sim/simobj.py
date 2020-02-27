@@ -16,9 +16,6 @@ class SimObj:
         * schedule initial event(s) for objects that need them.
         """
         raise NotImplementedError
-
-    def processEvent(self):
-        raise NotImplementedError
     
     def name(self):
         return self.obj_name

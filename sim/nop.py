@@ -38,8 +38,4 @@ class NOP(SimObj):
         for module in self.modules.values():
             module.startup(eventQueue)
         
-
-    def processEvent(self):
-        print("Hello from ", self.name())
-
     

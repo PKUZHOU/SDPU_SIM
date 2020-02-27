@@ -8,17 +8,6 @@ class PE(SimObj):
     def __init__(self,name):
         super(PE,self).__init__(name)
         self.eventQueue = None
-        #add router
-        self.add_module(Router(self.name().replace("PE","ROUTER-PE")))
-        #IA buffer
-        self.add_module(SRAM(self.name().replace("PE","IA_BUFFER")))
-        #W buffer
-        self.add_module(SRAM(self.name().replace("PE","W_BUFFER")))
-        #ACC buffer
-        self.add_module(SRAM(self.name().replace("PE","ACC_BUFFER")))
-        #MAC vector
-        self.add_module(MAC_Vector(self.name().replace("PE","MAC_VECTOR")))
-
         self.config_regs = []
     
     def get_type(self):
@@ -29,6 +18,15 @@ class PE(SimObj):
         router = self.modules[router_name]
         return router
 
+    def get_sram(self, sram_type):
+        """
+        Args: 
+            sram_type:  "IA_BUFFER","W_BUFFER","ACC_BUFFER"
+        """
+        pre_fix = "SRAM-" + sram_type
+        sram_name = self.name().replace("PE",pre_fix)
+        return self.modules[sram_name]
+
     def configure(self, config):
         """
         Configure the parameters of submodules in the PE, including Router, IA_buffer,
@@ -38,25 +36,35 @@ class PE(SimObj):
         Returns:
             No returns
         """
-        for module_name, module in self.modules.items():
-            if("IA_BUFFER" in module_name):
-                module.set_depth(config["IA_Buffer_Depth"])
-                module.set_width(config["IA_Buffer_Width"])
+        #IA buffer
+        IA_buffer = SRAM(self.name().replace("PE","SRAM-IA_BUFFER"))
+        IA_buffer.set_depth(config["IA_Buffer_Depth"])
+        IA_buffer.set_width(config["IA_Buffer_Width"])
+        #W buffer
+        W_buffer = SRAM(self.name().replace("PE","SRAM-W_BUFFER"))
+        W_buffer.set_depth(config["W_Buffer_Depth"])
+        W_buffer.set_width(config["W_Buffer_Width"])
+        #ACC buffer
+        ACC_buffer = SRAM(self.name().replace("PE","SRAM-ACC_BUFFER"))
+        ACC_buffer.set_depth(config["Acc_Buffer_Depth"])
+        ACC_buffer.set_width(config["Acc_Buffer_Width"])
+        #MAC vector
+        MAC_vector = MAC_Vector(self.name().replace("PE","SRAM-MAC_VECTOR"))
+        MAC_vector.set_lanes(config["Lanes"])
+        #add router
+        router = Router(self.name().replace("PE","ROUTER-PE"))
+        router.set_latency(config["NOC_Latency"])
+        router.set_bandwidth(config["NOC_Bandwidth"])
 
-            elif("W_BUFFER" in module_name):
-                module.set_depth(config["W_Buffer_Depth"])
-                module.set_width(config["W_Buffer_Width"])
-
-            elif("ACC_BUFFER" in module_name):
-                module.set_depth(config["Acc_Buffer_Depth"])
-                module.set_width(config["Acc_Buffer_Width"])
-
-            elif("ROUTER" in module_name):
-                module.set_latency(config["NOC_Latency"])
-                module.set_bandwidth(config["NOC_Bandwidth"])
-
-            elif("MAC_VECTOR" in module_name):
-                module.set_lanes(config["Lanes"])
+        self.add_module(router)
+        router.set_neighbor(IA_buffer,'L')
+        router.set_neighbor(W_buffer,'L')
+        router.set_neighbor(ACC_buffer,'L')
+        self.add_module(router)
+        self.add_module(IA_buffer)
+        self.add_module(W_buffer)
+        self.add_module(ACC_buffer)
+        self.add_module(MAC_vector)
 
     def connect_to(self, neighbor, direction):
         """
@@ -85,6 +93,3 @@ class PE(SimObj):
         self.eventQueue = eventQueue
         for module in self.modules.values():
             module.startup(eventQueue)
-    
-    def processEvent(self):
-        print("Hello from ", self.name())

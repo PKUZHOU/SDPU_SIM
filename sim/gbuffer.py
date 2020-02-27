@@ -92,7 +92,7 @@ class GlobalBuffer(SimObj):
                 # the first PE of each row
                 dst_router_name = self.name().replace("GBUF","ROUTER-PE")\
                     + "-" + str(row) + "-0"
-                self.send_packet(dst_router_name, "MUTICAST")
+                self.send_packet(dst_router_name, "MULTICAST")
             else:
                 return
         # start another pass in the next tick 
