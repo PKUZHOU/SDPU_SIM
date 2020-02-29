@@ -4,6 +4,7 @@ from .pe import PE
 from .gbuffer import GlobalBuffer
 from .router import Router
 from .ext_mem import Ext_Memory
+from .defines import *
 
 class System:
     def __init__(self, acc_config):
@@ -27,60 +28,68 @@ class System:
         Add all the top level modules to the system, and deal with the connections.
         """
         #read the Tile and PE array shape from configs.
-        Tile_rows = self.acc_config["H_tile"] # the number of rows of each Tile array
-        Tile_cols = self.acc_config["W_tile"] # the number of columns of each Tile array
+        Tile_rows = self.acc_config["H_TILE"] # the number of rows of each Tile array
+        Tile_cols = self.acc_config["W_TILE"] # the number of columns of each Tile array
         
         #Tile level loop
         for tile_row_id in range(Tile_rows):
             for tile_col_id in range(Tile_cols):
                 #add tile
-                tile_id_prefix = str(tile_row_id)+"-"+str(tile_col_id)
-                tile_name = "TILE-" + tile_id_prefix
+                tile_name = "{}-{}-{}".format(TILE_, tile_row_id, tile_col_id)
                 tile = Tile(tile_name)
                 tile.configure(self.acc_config)
                 self.add_module(tile)
         
         #add external memory
-        ext_mem_name = "EXT_MEM"
+        ext_mem_name = EXT_MEM_
         ext_mem = Ext_Memory(ext_mem_name)
-        ext_mem.set_bandwidth(self.acc_config["Ext_Bandwidth"])
+        ext_mem.configure(self.acc_config)
         self.add_module(ext_mem)
-    
+
         #connect the modules
         self.connect_modules()
 
+    def get_ext_mem(self):
+        return self.modules[EXT_MEM_]
 
-    def get_TILE(self, TILE_row, TILE_col):
-        TILE_subfix = "-".join([str(TILE_row),str(TILE_col)])
-        TILE_name = "-".join(["TILE", TILE_subfix])           
-        return self.modules[TILE_name]
-
+    def get_tile(self, tile_row, tile_col):
+        tile_name = "{}-{}-{}".format(TILE_,tile_row, tile_col)           
+        return self.modules[tile_name]
 
     def connect_modules(self):
         """
         Connect the top level modules of the system, mainly the routing topology
         """
-        Tile_rows = self.acc_config["H_tile"]
-        Tile_cols = self.acc_config["W_tile"] 
+        Tile_rows = self.acc_config["H_TILE"]
+        Tile_cols = self.acc_config["W_TILE"] 
         for tile_row_id in range(Tile_rows):
             for tile_col_id in range(Tile_cols):
-                tile = self.get_TILE(tile_row_id, tile_col_id)  
+                tile = self.get_tile(tile_row_id, tile_col_id)  
                 #N direction
                 if(tile_row_id > 0):  
-                    N_tile = self.get_TILE(tile_row_id - 1, tile_col_id)         
+                    N_tile = self.get_tile(tile_row_id - 1, tile_col_id)         
                     tile.connect_to(N_tile,'N')
                 #E direction
                 if(tile_col_id < Tile_cols - 1):
-                    E_tile = self.get_TILE(tile_row_id, tile_col_id + 1)               
+                    E_tile = self.get_tile(tile_row_id, tile_col_id + 1)               
                     tile.connect_to(E_tile,'E')
                 #S direction
                 if(tile_row_id < Tile_rows - 1):
-                    S_tile = self.get_TILE(tile_row_id + 1, tile_col_id)              
+                    S_tile = self.get_tile(tile_row_id + 1, tile_col_id)              
                     tile.connect_to(S_tile,'S')
                 #W direction
                 if(tile_col_id > 0):          
-                    W_tile = self.get_TILE(tile_row_id, tile_col_id - 1)
-                    tile.connect_to(W_tile,'W')              
+                    W_tile = self.get_tile(tile_row_id, tile_col_id - 1)
+                    tile.connect_to(W_tile,'W')     
+                #EXT_MEM
+                if( (tile_row_id == 0 and tile_col_id == 0) or \
+                    (tile_row_id == 0 and tile_col_id == Tile_cols - 1) or \
+                    (tile_row_id == Tile_rows-1 and tile_col_id == 0) or \
+                    (tile_row_id == Tile_rows-1 and tile_col_id == Tile_cols - 1)):
+                    ext_mem = self.get_ext_mem()
+                    corner_tile = self.get_tile(tile_row_id, tile_col_id)
+                    corner_tile.connect_to(ext_mem)
+                    ext_mem.connect_to(corner_tile)
 
     def instantiate(self):
         """

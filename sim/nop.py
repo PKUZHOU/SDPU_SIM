@@ -1,6 +1,7 @@
 from .simobj import SimObj
 from .event import Event
 from .router import Router
+from .defines import * 
 
 class NOP(SimObj):
     def __init__(self, name):
@@ -8,16 +9,16 @@ class NOP(SimObj):
         self.eventQueue = None
 
     def get_type(self):
-        return "NOP"
+        return NOP_
 
     def configure(self, acc_config):
-        router_name = self.name().replace("NOP","NOP-ROUTER")
+        router_name = self.name().replace(NOP_,"{}-{}".format(NOP_,ROUTER_))
         router = Router(router_name)
-        router.configure(acc_config,"NOP")
+        router.configure(acc_config,NOP_)
         self.add_module(router)
 
     def get_router(self):
-        router = self.modules[self.name().replace("NOP","NOP-ROUTER")]
+        router = self.modules[self.name().replace(NOP_,"{}-{}".format(NOP_, ROUTER_))]
         return router
 
     def connect_to(self, neighbor, direction):

@@ -2,6 +2,7 @@ from .simobj import SimObj
 from .event import Event
 from .router import Router
 import math 
+from .defines import *
 
 class SRAM(SimObj):
     def __init__(self,name):
@@ -15,7 +16,7 @@ class SRAM(SimObj):
         self.used = 0
 
     def get_type(self):
-        return "SRAM"
+        return SRAM_
 
     def set_depth(self, depth):
         self.depth = depth

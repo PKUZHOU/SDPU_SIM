@@ -2,6 +2,7 @@ from .simobj import SimObj
 from .event import Event
 from .router import Router
 from .sram import SRAM
+from .defines import *
 
 class GlobalBuffer(SimObj):
     def __init__(self, name):
@@ -10,7 +11,7 @@ class GlobalBuffer(SimObj):
         self.eventQueue = None
 
     def get_type(self):
-        return "GBUF"
+        return GBUF_
 
     def load_config_regs(self, config_regs):
         self.config_regs = config_regs
@@ -18,27 +19,24 @@ class GlobalBuffer(SimObj):
     def add_sram(self, sram_type, acc_config):
         """
         Args: 
-            sram_type: "Input","Weight","Output"
+            sram_type: "INPUT","WEIGHT","OUTPUT"
         """
-        pre_fix = "SRAM-GBUF-"+sram_type.upper()
-        sram_name = self.name().replace("GBUF",pre_fix)
+        sram_name = self.name().replace(GBUF_,"{}-{}-{}".format(SRAM_,GBUF_,sram_type.upper()))
         sram = SRAM(sram_name)
-        sram.set_depth(acc_config[sram_type + '_SRAM_Depth'])
-        sram.set_width(acc_config[sram_type + '_SRAM_Width'])
-
+        sram.set_depth(acc_config[sram_type + '_SRAM_DEPTH'])
+        sram.set_width(acc_config[sram_type + '_SRAM_WIDTH'])
         self.add_module(sram)
 
     def get_sram(self, sram_type):
         """
         Args: 
-            sram_type:  "Input","Weight","Output"
+            sram_type: "INPUT","WEIGHT","OUTPUT"
         """
-        pre_fix = "SRAM-GBUF-" + sram_type.upper()
-        sram_name = self.name().replace("GBUF",pre_fix)
+        sram_name = self.name().replace(GBUF_,"{}-{}-{}".format(SRAM_,GBUF_,sram_type.upper()))
         return self.modules[sram_name]
 
     def get_router(self):
-        router = self.modules[self.name().replace("GBUF","ROUTER-GBUF")]
+        router = self.modules[self.name().replace(GBUF_,"{}-{}".format(ROUTER_,GBUF_))]
         return router
 
     def connect_to(self, neighbor, direction):
@@ -61,13 +59,13 @@ class GlobalBuffer(SimObj):
             acc_config: The dict of the accelerator config
         """
         # add the router
-        router_name = self.name().replace("GBUF","ROUTER-GBUF")
+        router_name = self.name().replace(GBUF_,"{}-{}".format(ROUTER_,GBUF_))
         router = Router(router_name)
         self.add_module(router)
         # add the input sram
-        self.add_sram('Input', acc_config)
-        self.add_sram('Weight',acc_config)
-        self.add_sram('Output',acc_config)
+        self.add_sram('INPUT', acc_config)
+        self.add_sram('WEIGHT',acc_config)
+        self.add_sram('OUTPUT',acc_config)
 
     def send_packet(self, dst, packet_type):
         # local router
@@ -82,17 +80,17 @@ class GlobalBuffer(SimObj):
         """
         Read the input data from input sram and send them to different PE rows through NOC
         """
-        input_sram = self.get_sram("Input")
+        input_sram = self.get_sram("INPUT")
         # multicast to each PE row
-        PE_rows = self.config_regs['PE_rows']
+        PE_rows = self.config_regs['PE_ROWS']
         for row in range(PE_rows):
             bytes_in_word = 8
             ret = input_sram.read(bytes_in_word)
             if(ret == 0):
                 # the first PE of each row
-                dst_router_name = self.name().replace("GBUF","ROUTER-PE")\
-                    + "-" + str(row) + "-0"
-                self.send_packet(dst_router_name, "MULTICAST")
+                dst_router_name = self.name().replace(GBUF_,"{}-{}".format(ROUTER_,PE_))\
+                    + "-{}-{}".format(row, 0)
+                self.send_packet(dst_router_name, MULTICAST_)
             else:
                 return
         # start another pass in the next tick 
@@ -104,20 +102,20 @@ class GlobalBuffer(SimObj):
         """
         Read the weight data from weight sram and send them to different PE through NOC
         """
-        weight_sram = self.get_sram("Weight")
+        weight_sram = self.get_sram("WEIGHT")
         # unicast to each PE
         # TODO: consider the NOC bandwidth
-        PE_rows = self.config_regs['PE_rows']
-        PE_cols = self.config_regs['PE_cols']
+        PE_rows = self.config_regs['PE_ROWS']
+        PE_cols = self.config_regs['PE_COLS']
         for row in range(PE_rows):
             for col in range(PE_cols):
                 bytes_in_word = 8
                 ret = weight_sram.read(bytes_in_word)
                 if(ret == 0):
                     # the first PE of each row
-                    dst_router_name = self.name().replace("GBUF","ROUTER-PE")\
-                        + "-" + str(row) + "-" + str(col)
-                    self.send_packet(dst_router_name, "UNICAST")
+                    dst_router_name = self.name().replace(GBUF_,"{}-{}".format(ROUTER_,PE_))\
+                        + "-{}-{}".format(row,col)
+                    self.send_packet(dst_router_name, UNICAST_)
                 else:
                     return
         # start another pass in the next tick 
@@ -131,18 +129,18 @@ class GlobalBuffer(SimObj):
         self.eventQueue = eventQueue
 
         # In this version, the input and weight are pre-loaded in the sram
-        multicast_bytes = self.config_regs['Multicast']
-        unicast_bytes = self.config_regs['Unicast']
+        multicast_bytes = self.config_regs[MULTICAST_]
+        unicast_bytes = self.config_regs[UNICAST_]
 
-        PE_rows = self.config_regs['PE_rows']
-        PE_cols = self.config_regs['PE_cols']
+        PE_rows = self.config_regs['PE_ROWS']
+        PE_cols = self.config_regs['PE_COLS']
 
         # pre-load the inputs and weights
         # TODO read weight and input from external memory
-        input_sram = self.get_sram("Input")
+        input_sram = self.get_sram("INPUT")
         ret = input_sram.write(multicast_bytes * PE_rows)
         assert(ret == 0)
-        weight_sram = self.get_sram("Weight")
+        weight_sram = self.get_sram("WEIGHT")
         ret = weight_sram.write(unicast_bytes * PE_cols * PE_rows)
         assert(ret == 0)
 

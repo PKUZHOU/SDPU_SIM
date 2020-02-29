@@ -3,6 +3,7 @@ from .event import Event
 from .router import Router
 from .sram import SRAM
 from .mac_vector import MAC_Vector
+from .defines import *
 
 class PE(SimObj):
     def __init__(self,name):
@@ -11,21 +12,44 @@ class PE(SimObj):
         self.config_regs = []
     
     def get_type(self):
-        return "PE"
+        return PE_
+
+    def add_router(self, acc_config):
+        router = Router(self.name().replace(PE_,"-".join([ROUTER_, PE_])))
+        router.set_latency(acc_config["NOC_LATENCY"])
+        router.set_bandwidth(acc_config["NOC_BANDWIDTH"])
+        self.add_module(router)
+        return router
 
     def get_router(self):
-        router_name = self.name().replace("PE","ROUTER-PE")
+        router_name = self.name().replace(PE_,"-".join([ROUTER_, PE_]))
         router = self.modules[router_name]
         return router
+
+    def add_sram(self, sram_type, acc_config):
+        """
+        Args: 
+            sram_type:  "IA_BUFFER","W_BUFFER","ACC_BUFFER"
+        """
+        sram_name = self.name().replace(PE_,"-".join([SRAM_, sram_type]))
+        sram = SRAM(sram_name)
+        sram.set_depth(acc_config["{SRAM_TYPE}_DEPTH".format(sram_type)])
+        sram.set_width(acc_config["{SRAM_TYPE}_WIDTH".format(sram_type)])
+        return sram
 
     def get_sram(self, sram_type):
         """
         Args: 
             sram_type:  "IA_BUFFER","W_BUFFER","ACC_BUFFER"
         """
-        pre_fix = "SRAM-" + sram_type
-        sram_name = self.name().replace("PE",pre_fix)
+        sram_name = self.name().replace(PE_,"-".join([SRAM_, sram_type]))
         return self.modules[sram_name]
+    
+    def add_MAC_vector(self, acc_config):
+        MAC_vector_name = self.name().replace(PE_,MAC_VECTOR_)
+        MAC_vector = MAC_Vector(MAC_vector_name)
+        MAC_vector.set_lanes(acc_config["LANES"])
+        return MAC_vector
 
     def configure(self, config):
         """
@@ -37,34 +61,19 @@ class PE(SimObj):
             No returns
         """
         #IA buffer
-        IA_buffer = SRAM(self.name().replace("PE","SRAM-IA_BUFFER"))
-        IA_buffer.set_depth(config["IA_Buffer_Depth"])
-        IA_buffer.set_width(config["IA_Buffer_Width"])
+        IA_buffer = self.add_sram(IA_BUFFER_,config)
         #W buffer
-        W_buffer = SRAM(self.name().replace("PE","SRAM-W_BUFFER"))
-        W_buffer.set_depth(config["W_Buffer_Depth"])
-        W_buffer.set_width(config["W_Buffer_Width"])
+        W_buffer = self.add_sram(W_BUFFER_,config)
         #ACC buffer
-        ACC_buffer = SRAM(self.name().replace("PE","SRAM-ACC_BUFFER"))
-        ACC_buffer.set_depth(config["Acc_Buffer_Depth"])
-        ACC_buffer.set_width(config["Acc_Buffer_Width"])
+        ACC_buffer = self.add_sram(ACC_BUFFER_,config)
         #MAC vector
-        MAC_vector = MAC_Vector(self.name().replace("PE","SRAM-MAC_VECTOR"))
-        MAC_vector.set_lanes(config["Lanes"])
-        #add router
-        router = Router(self.name().replace("PE","ROUTER-PE"))
-        router.set_latency(config["NOC_Latency"])
-        router.set_bandwidth(config["NOC_Bandwidth"])
-
-        self.add_module(router)
+        self.add_MAC_vector(config)
+        #Router
+        
+        router = self.add_router(config)
         router.set_neighbor(IA_buffer,'L')
         router.set_neighbor(W_buffer,'L')
         router.set_neighbor(ACC_buffer,'L')
-        self.add_module(router)
-        self.add_module(IA_buffer)
-        self.add_module(W_buffer)
-        self.add_module(ACC_buffer)
-        self.add_module(MAC_vector)
 
     def connect_to(self, neighbor, direction):
         """

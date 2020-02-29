@@ -4,6 +4,7 @@ from .router import Router
 from .gbuffer import GlobalBuffer
 from .pe import PE
 from .nop import NOP
+from .defines import *
 
 class Tile(SimObj):
     def __init__(self,name):
@@ -12,16 +13,16 @@ class Tile(SimObj):
         self.acc_config = None 
     
     def get_type(self):
-        return "TILE"
+        return TILE_
 
     def add_NOP(self):
-        nop_name = self.name().replace("TILE","NOP")
+        nop_name = self.name().replace(TILE_,NOP_)
         nop = NOP(nop_name)
         nop.configure(self.acc_config)
         self.add_module(nop)
 
     def get_NOP(self):
-        nop_name = self.name().replace("TILE","NOP")
+        nop_name = self.name().replace(TILE_,NOP_)
         return self.modules[nop_name]
 
     def get_router(self):
@@ -29,13 +30,13 @@ class Tile(SimObj):
         return router
 
     def add_gbuf(self):
-        gbuf_name = self.name().replace("TILE","GBUF")
+        gbuf_name = self.name().replace(TILE_,GBUF_)
         gbuf = GlobalBuffer(gbuf_name)
         gbuf.configure(self.acc_config)
         self.add_module(gbuf)
 
     def get_gbuf(self):
-        gbuf_name = self.name().replace("TILE","GBUF")
+        gbuf_name = self.name().replace(TILE_,GBUF_)
         return self.modules[gbuf_name]
 
     def add_PEs(self):          
@@ -45,17 +46,17 @@ class Tile(SimObj):
         for pe_row_id in range(PE_rows):
             for pe_col_id in range(PE_cols):
                 #add pe
-                pe_id_prefix = str(pe_row_id)+"-"+str(pe_col_id)
-                pe_name = self.name().replace("TILE","PE") + '-'+pe_id_prefix
+                pe_name = self.name().replace(TILE_,PE_) + \
+                    '-{}-{}'.format(pe_row_id, pe_col_id)
                 pe = PE(pe_name)
                 #configure the PE, eg. SRAM depth and width
                 pe.configure(self.acc_config)
                 self.add_module(pe)
 
     def get_PE(self, PE_row, PE_col):
-        PE_subfix = "-".join([str(PE_row),str(PE_col)])
-        PE_prefix = self.name().replace("TILE","PE")
-        PE_name = "-".join([PE_prefix, PE_subfix])           
+        PE_subfix = "{}-{}".format(PE_row,PE_col)
+        PE_prefix = self.name().replace(TILE_,PE_)
+        PE_name = "{}-{}".format(PE_prefix, PE_subfix)           
         return self.modules[PE_name]
 
     def configure(self,acc_config):
@@ -110,7 +111,7 @@ class Tile(SimObj):
                     pe.connect_to(W_pe,'W')          
         
         #connect the global buffer
-        gbuffer_name = self.name().replace("TILE","GBUF")
+        gbuffer_name = self.name().replace(TILE_,GBUF_)
         gbuffer = self.modules[gbuffer_name]
         #connect to the first PE TODO: more than one routers in a global_buffer
         first_pe = self.get_PE(0,0)

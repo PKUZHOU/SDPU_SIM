@@ -1,42 +1,42 @@
 #External memory
-Ext_Bandwidth: 25.6
-
+EXT_MEM_BANDWIDTH: 25.6 #GBps
+EXT_MEM_CHANNELS: 4
 #package level
 
-W_tile: 6
-H_tile: 6
+W_TILE: 6
+H_TILE: 6
 
 #Tile level 
 
-Input_SRAM_Depth: 2048
-Input_SRAM_Width: 8  
+INPUT_SRAM_DEPTH: 2048
+INPUT_SRAM_WIDTH: 8  
 
-Weight_SRAM_Depth: 2048
-Weight_SRAM_Width: 8  
+WEIGHT_SRAM_DEPTH: 2048
+WEIGHT_SRAM_WIDTH: 8  
 
-Output_SRAM_Depth: 2048
-Output_SRAM_Width: 8  
+OUTPUT_SRAM_DEPTH: 2048
+OUTPUT_SRAM_WIDTH: 8  
 
 W_PE: 5
 H_PE: 4
 
 #PE level
-Lanes: 8
-Vector_Width: 8
+LANES: 8
+VECTOR_WIDTH: 8
 
-IA_Buffer_Depth: 1024
-IA_Buffer_Width: 8 #bytes 
-W_Buffer_Depth: 512
-W_Buffer_Width: 64
+IA_BUFFER_DEPTH: 1024
+IA_BUFFER_WIDTH: 8 #bytes 
+W_BUFFER_DEPTH: 512
+W_BUFFER_WIDTH: 64
 
-Acc_Buffer_Depth: 64
-Acc_Buffer_Width: 8
-Acc_Bufer_Bank_Number: 2
+ACC_BUFFER_DEPTH: 64
+ACC_BUFFER_WIDTH: 8
+ACC_BUFFER_BANK_NUMBER: 2
 
 #NOC
-NOC_Latency: 2 #cycles
-NOC_Bandwidth: 70 #GBps
+NOC_LATENCY: 2 #cycles
+NOC_BANDWIDTH: 70 #GBps
 
 #NOP
-NOP_Latency: 2 #cycles
-NOP_Bandwidth: 100 #GBps
+NOP_LATENCY: 2 #cycles
+NOP_BANDWIDTH: 100 #GBps

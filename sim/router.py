@@ -1,5 +1,6 @@
 from .simobj import SimObj
 from .event import Event
+from .defines import *
 
 class Router(SimObj):
     def __init__(self,name):
@@ -12,7 +13,7 @@ class Router(SimObj):
         self.input_buffer = []
 
     def get_type(self):
-        return "ROUTER"
+        return ROUTER_
 
     def add_to_buffer(self, dst_router, packet_type):
         self.input_buffer.append([dst_router, packet_type])
@@ -45,29 +46,29 @@ class Router(SimObj):
             if(dst_router == self.name()):
                 #here is the destination
                 #TODO: deal with the packet
-                if(packet_type == "UNICAST"):
+                if(packet_type == MULTICAST_):
                     continue
-                elif(packet_type == "MULTICAST"):
+                elif(packet_type == MULTICAST_):
                     if(not in_same_tile):
                         raise NotImplementedError
                     else:
-                        if(cur_level != "PE"):
+                        if(cur_level != PE_):
                             raise NotImplementedError
                         else:
                             cur_row = int(splited_cur_name[4])
                             cur_col = int(splited_cur_name[5])
                             next_hop_col = cur_col + 1
                             next_hop_row = cur_row              
-                            next_hop_name = "ROUTER-PE-{}-{}-{}-{}".format(cur_tile_row, cur_tile_col,\
-                                    next_hop_row, next_hop_col)
+                            next_hop_name = "{}-{}-{}-{}-{}-{}".format(ROUTER_, PE_, cur_tile_row,\
+                                cur_tile_col, next_hop_row, next_hop_col)
                             dst_router = next_hop_name
 
             else:                
-                if(cur_level == "PE"):
+                if(cur_level == PE_):
                     cur_row = int(splited_cur_name[4])
                     cur_col = int(splited_cur_name[5])
                     # PE to PE
-                    if(dst_level == "PE"):
+                    if(dst_level == PE_):
 
                         dst_row = int(splited_dst_name[4])
                         dst_col = int(splited_dst_name[5])
@@ -91,37 +92,36 @@ class Router(SimObj):
                                     next_hop_col = cur_col
                                     next_hop_row = cur_row - 1
 
-                            next_hop_name = "ROUTER-PE-{}-{}-{}-{}".format(cur_tile_row, cur_tile_col,\
-                                    next_hop_row, next_hop_col)
+                            next_hop_name = "{}-{}-{}-{}-{}-{}".format(ROUTER_, PE_, cur_tile_row,\
+                                cur_tile_col, next_hop_row, next_hop_col)
                         else:
                             # the two PEs are in different tiles
                             raise NotImplementedError
                         
                     # PE to GBUF
-                    elif(dst_level == "GBUF"):
+                    elif(dst_level == GBUF_):
                         if(in_same_tile):
                             if(cur_col > 0):
                                 next_hop_col = cur_col - 1
                                 next_hop_row = cur_row
-                                next_hop_name = "ROUTER-PE-{}-{}-{}-{}".format(cur_tile_row, cur_tile_col,\
-                                    cur_row, next_hop_col)
+                                next_hop_name = "{}-{}-{}-{}-{}-{}".format(ROUTER_, PE_, cur_tile_row, cur_tile_col, cur_row, next_hop_col)
                             elif(cur_row > 0):
                                 next_hop_col = cur_col
                                 next_hop_row = cur_row - 1
-                                next_hop_name = "ROUTER-PE-{}-{}-{}-{}".format(cur_tile_row, cur_tile_col,\
-                                    cur_row, next_hop_col)
+                                next_hop_name = "{}-{}-{}-{}-{}-{}".format(ROUTER_, PE_,cur_tile_row, cur_tile_col, cur_row, next_hop_col)
                             else:
-                                next_hop_name = "ROUTER-GBUF-{}-{}".format(cur_tile_row, cur_tile_col)
+                                next_hop_name = "{}-{}-{}-{}".format(ROUTER_, GBUF_,cur_tile_row, cur_tile_col)
                         else:
                             raise NotImplementedError
 
-                elif(cur_level == "GBUF"):
-                    if(dst_level == "GBUF"):
+                elif(cur_level == GBUF_):
+                    if(dst_level == GBUF_):
                         raise NotImplementedError
                     # GBUF to PE
-                    elif(dst_level == "PE"):        
+                    elif(dst_level == PE_):        
                         if(in_same_tile):
-                            next_hop_name = "ROUTER-PE-{}-{}-{}-{}".format(cur_tile_row, cur_tile_col,0,0)
+                            next_hop_name = "{}-{}-{}-{}-{}-{}".format(ROUTER_, PE_, cur_tile_row,\
+                                cur_tile_col,0,0)
                         else:
                             raise NotImplementedError
 
@@ -131,8 +131,7 @@ class Router(SimObj):
                 when = self.eventQueue.curTick + self.latency
                 event = Event(next_hop_router.forward)
                 self.eventQueue.schedule(event, when)
-            # else:
-            #     print(next_hop_name)
+                
         self.input_buffer.clear()
         # print(len(self.input_buffer))
 
@@ -146,14 +145,14 @@ class Router(SimObj):
         Returns:
             No returns
         """
-        if(type == "NOC"):
-            latency = acc_configs["NOC_Latency"]
-            bandwidth = acc_configs["NOC_Bandwidth"]
+        if(type == NOC_):
+            latency = acc_configs["NOC_LATENCY"]
+            bandwidth = acc_configs["NOC_BANDWIDTH"]
             self.set_latency(latency)
             self.set_bandwidth(bandwidth)
-        elif(type == "NOP"):
-            latency = acc_configs["NOP_Latency"]
-            bandwidth = acc_configs["NOP_Bandwidth"]
+        elif(type == NOP_):
+            latency = acc_configs["NOP_LATENCY"]
+            bandwidth = acc_configs["NOP_BANDWIDTH"]
             self.set_latency(latency)
             self.set_bandwidth(bandwidth)
 

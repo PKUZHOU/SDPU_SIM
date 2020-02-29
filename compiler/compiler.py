@@ -1,3 +1,4 @@
+from sim.defines import *
 class Compiler:
     def __init__(self):
         self.acc_cfg = None
@@ -12,6 +13,14 @@ class Compiler:
             no returns
         """
         self.acc_cfg = acc_cfg
+
+    def gen_load_inst(self, src, dst, words):
+        load_inst = "{load}-{src}-{dst}-{words}".format(LOAD_, src,dst,words)
+        return load_inst
+    
+    def gen_store_inst(self,src,dst, words):
+        store_inst = "{store}-{src}-{dst}-{words}".format(STORE_,src, dst, words)
+        return store_inst
 
     def load_nn(self, nn):
         """
@@ -33,10 +42,10 @@ class Compiler:
         """
         PE_rows = self.acc_cfg["H_PE"] # the number of rows of each PE array
         PE_cols = self.acc_cfg["W_PE"] # the number of columns of each PE array
-        Tile_rows = self.acc_cfg["H_tile"] # the number of rows of each Tile array
-        Tile_cols = self.acc_cfg["W_tile"] # the number of columns of each Tile array
+        Tile_rows = self.acc_cfg["H_TILE"] # the number of rows of each Tile array
+        Tile_cols = self.acc_cfg["W_TILE"] # the number of columns of each Tile array
 
-        Total_tiles = Tile_rows*Tile_cols
+        Total_tiles = Tile_rows * Tile_cols
 
         N = layer.nifm #input channel
         W = layer.wifm #input width
@@ -55,20 +64,19 @@ class Compiler:
         per_tile_H = max(H//(Total_tiles),1)
         #TODO deal with the margine
 
-        Lanes = self.acc_cfg["Lanes"]
-        Vector_width = self.acc_cfg["Vector_Width"]
+        Lanes = self.acc_cfg["LANES"]
+        Vector_width = self.acc_cfg["VECTOR_WIDTH"]
         #generate the codes
         #Tile level loop 
         config_regs = {}
         for tile_row_id in range(Tile_rows):
             for tile_col_id in range(Tile_cols):
-                tile_id_prefix = str(tile_row_id)+"-"+str(tile_col_id)
                 tile_config_regs = {}
                 #PE level loop
                 for pe_row_id in range(PE_rows):
                     for pe_col_id in range(PE_cols):
-                        pe_id_prefix = str(pe_row_id)+"-"+str(pe_col_id)
-                        pe_name = "PE-"+ tile_id_prefix + '-'+pe_id_prefix
+                        pe_name = "{}-{}-{}-{}-{}".format(PE_, tile_row_id, tile_col_id,\
+                            pe_row_id, pe_col_id)
                         pe_config_regs = []
                         # calculate the loops per PE 
                         n_loops = max(per_pe_o//Lanes, 1) * max(per_pe_n//Vector_width, 1)\
@@ -78,18 +86,18 @@ class Compiler:
                         tile_config_regs[pe_name] = pe_config_regs
                 
                 gbuf_config_regs = {}    
-                gbuf_name = "GBUF-"+tile_id_prefix
+                gbuf_name = "{}-{}-{}".format(GBUF_,tile_row_id,tile_col_id)
                 # multicast the inputs 
-                gbuf_config_regs["Multicast"] = per_pe_n*W*per_tile_H
+                gbuf_config_regs[MULTICAST_] = per_pe_n*W*per_tile_H
                 # unicast the weights
-                gbuf_config_regs["Unicast"] = per_pe_n*per_pe_o
+                gbuf_config_regs[UNICAST_] = per_pe_n*per_pe_o
 
                 # set the pe array shape
-                gbuf_config_regs["PE_rows"] = PE_rows
-                gbuf_config_regs["PE_cols"] = PE_cols
+                gbuf_config_regs["PE_ROWS"] = PE_rows
+                gbuf_config_regs["PE_COLS"] = PE_cols
  
                 tile_config_regs[gbuf_name] = gbuf_config_regs
-                tile_name = "TILE-" + tile_id_prefix
+                tile_name = "{}-{}-{}".format(TILE_, tile_row_id, tile_col_id)
                 config_regs[tile_name] = tile_config_regs 
                 
         return config_regs
