@@ -11,7 +11,7 @@ acc_cfg = read_acc_config(acc_cfg_file)
 compiler = Compiler()
 
 #get the network 
-resnet50 = import_network('resnet50')
+resnet50 = import_network('alex_net')
 
 #load the cfg and network
 compiler.load_acc_cfg(acc_cfg)

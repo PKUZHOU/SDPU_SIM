@@ -46,7 +46,7 @@ class Router(SimObj):
             if(dst_router == self.name()):
                 #here is the destination
                 #TODO: deal with the packet
-                if(packet_type == MULTICAST_):
+                if(packet_type == UNICAST_):
                     continue
                 elif(packet_type == MULTICAST_):
                     if(not in_same_tile):

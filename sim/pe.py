@@ -33,8 +33,8 @@ class PE(SimObj):
         """
         sram_name = self.name().replace(PE_,"-".join([SRAM_, sram_type]))
         sram = SRAM(sram_name)
-        sram.set_depth(acc_config["{SRAM_TYPE}_DEPTH".format(sram_type)])
-        sram.set_width(acc_config["{SRAM_TYPE}_WIDTH".format(sram_type)])
+        sram.set_depth(acc_config["{}_DEPTH".format(sram_type)])
+        sram.set_width(acc_config["{}_WIDTH".format(sram_type)])
         return sram
 
     def get_sram(self, sram_type):

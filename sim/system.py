@@ -82,14 +82,28 @@ class System:
                     W_tile = self.get_tile(tile_row_id, tile_col_id - 1)
                     tile.connect_to(W_tile,'W')     
                 #EXT_MEM
-                if( (tile_row_id == 0 and tile_col_id == 0) or \
-                    (tile_row_id == 0 and tile_col_id == Tile_cols - 1) or \
-                    (tile_row_id == Tile_rows-1 and tile_col_id == 0) or \
-                    (tile_row_id == Tile_rows-1 and tile_col_id == Tile_cols - 1)):
+                if(tile_row_id == 0 and tile_col_id == 0):
                     ext_mem = self.get_ext_mem()
                     corner_tile = self.get_tile(tile_row_id, tile_col_id)
-                    corner_tile.connect_to(ext_mem)
-                    ext_mem.connect_to(corner_tile)
+                    corner_tile.connect_to(ext_mem, 'W')
+                    ext_mem.connect_to(corner_tile,'E')
+                if(tile_row_id == 0 and tile_col_id == Tile_cols - 1):
+                    ext_mem = self.get_ext_mem()
+                    corner_tile = self.get_tile(tile_row_id, tile_col_id)
+                    corner_tile.connect_to(ext_mem, 'E')
+                    ext_mem.connect_to(corner_tile,'W')
+                if(tile_row_id == Tile_rows-1 and tile_col_id == 0):
+                    ext_mem = self.get_ext_mem()
+                    corner_tile = self.get_tile(tile_row_id, tile_col_id)
+                    corner_tile.connect_to(ext_mem, 'S')
+                    ext_mem.connect_to(corner_tile,'N')
+                if(tile_row_id == Tile_rows-1 and tile_col_id == Tile_cols - 1):
+                    ext_mem = self.get_ext_mem()
+                    corner_tile = self.get_tile(tile_row_id, tile_col_id)
+                    corner_tile.connect_to(ext_mem, 'N')
+                    ext_mem.connect_to(corner_tile,'S')
+                    
+                    
 
     def instantiate(self):
         """
@@ -126,6 +140,6 @@ class System:
             # print(len(cur_events))
             for event in cur_events:
                 event.process()
-            self.evetq.removeEvents(curTick)
             #all the events within current cycle are processes
             #so we remove these events from the event queue
+            self.evetq.removeEvents(curTick)
