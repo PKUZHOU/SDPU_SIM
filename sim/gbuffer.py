@@ -7,9 +7,10 @@ from .defines import *
 class GlobalBuffer(SimObj):
     def __init__(self, name):
         super(GlobalBuffer,self).__init__(name)
-        self.config_regs = []
+        self.config_regs = None
         self.eventQueue = None
-
+        self.state_regs = {}
+        self.acc_config = None
     def get_type(self):
         return GBUF_
 
@@ -58,6 +59,7 @@ class GlobalBuffer(SimObj):
         Args:
             acc_config: The dict of the accelerator config
         """
+        self.acc_config = acc_config
         # add the router
         router_name = self.name().replace(GBUF_,"{}-{}".format(ROUTER_,GBUF_))
         router = Router(router_name)
@@ -70,11 +72,12 @@ class GlobalBuffer(SimObj):
     def send_packet(self, dst, packet_type):
         # local router
         router = self.get_router()
+        src = router.name()
         # send the packet through local router
-        router.add_to_buffer(dst, packet_type)
-        event = Event(router.forward)
-        when = self.eventQueue.curTick + 1
-        router.eventQueue.schedule(event,when)
+        # take 4 cycles to shape the packet and write to the router buffer
+        router.add_to_input_buffer( src, dst, packet_type, send_delay = 4)
+        
+        #router.add_event(router.forward, latency = 4)
 
     def multicast_inputs(self):
         """
@@ -123,33 +126,54 @@ class GlobalBuffer(SimObj):
         curTick = self.eventQueue.curTick
         self.eventQueue.schedule(multicast_event,curTick + 1)
 
+    def load_IA(self):
+        if(self.state_regs[IA_BYTES_TO_LOAD_] > 0):
+            # The total input activation bytes of this tile
+            # One cache line size 64B per transaction
+            # Send read request to memory controller 
+            tile_row_idx = int(self.name().split("-")[1])
+            tile_col_idx = int(self.name().split("-")[2])
+            total_row = int(self.acc_config["H_TILE"])
+            total_col = int(self.acc_config["W_TILE"])
+
+            if tile_row_idx <= total_row//2:
+                target_row = 0
+            else:
+                target_row = total_row - 1
+            if tile_col_idx <= total_col//2:
+                target_col = 0
+            else:
+                target_col = total_col -1
+
+            dst_router = "{}-{}-{}-{}".format(ROUTER_,EXT_MEM_, target_row, target_col)
+            self.send_packet(dst = dst_router, packet_type = MEM_READ_REQ_)
+            self.state_regs[IA_BYTES_TO_LOAD_] -= CACHE_LINE_BYTES_
+            self.add_event(self.load_IA, latency = 1)
+
+    def send_IA(self):
+        # The PE array shape of this tile
+
+        # PE_rows = self.config_regs['PE_ROWS']
+        # PE_cols = self.config_regs['PE_COLS']
+        # input_sram = self.get_sram("INPUT")
+        # assert(ret == 0)
+        # weight_sram = self.get_sram("WEIGHT")
+        # assert(ret == 0)
+        raise NotImplementedError
+
     def startup(self, eventQueue):
         for module in self.modules.values():
             module.startup(eventQueue)
         self.eventQueue = eventQueue
 
-        # In this version, the input and weight are pre-loaded in the sram
-        multicast_bytes = self.config_regs[MULTICAST_]
-        unicast_bytes = self.config_regs[UNICAST_]
-
-        PE_rows = self.config_regs['PE_ROWS']
-        PE_cols = self.config_regs['PE_COLS']
-
-        # pre-load the inputs and weights
-        # TODO read weight and input from external memory
-        input_sram = self.get_sram("INPUT")
-        ret = input_sram.write(multicast_bytes * PE_rows)
-        assert(ret == 0)
-        weight_sram = self.get_sram("WEIGHT")
-        ret = weight_sram.write(unicast_bytes * PE_cols * PE_rows)
-        assert(ret == 0)
-
-        # start sending the inputs and weights
-        curTick = eventQueue.curTick
-        multicast_event = Event(self.multicast_inputs)
-        eventQueue.schedule(multicast_event,curTick + 1)
-        unicast_event = Event(self.unicast_weights)
-        eventQueue.schedule(unicast_event,curTick + 1)
+        # the IA_bytes to load
+        IA_rows = self.config_regs[TILE_H_]
+        IA_cols = self.config_regs[TILE_W_]
+        IA_n = self.config_regs[TILE_N_]
+        IA_bytes = IA_rows * IA_cols * IA_n
+        self.state_regs[IA_BYTES_TO_LOAD_] = IA_bytes
+        # Load input activation from the external memory 
+        self.add_event(self.load_IA,1)
 
 
 

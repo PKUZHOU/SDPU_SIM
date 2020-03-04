@@ -18,4 +18,24 @@ UNICAST_ = "UNICAST"
 LOAD_ = "LOAD"
 STORE_ = "STORE"
 
+PE_O_ = "PE_O"
+PE_N_ = "PE_N"
+PE_R_ = "PE_R"
+PE_C_ = "PE_C"
+PE_H_ = "PE_H"
+PE_W_ = "PE_W"
+PE_S_ = "S"
 
+TILE_H_ = "TILE_H"
+TILE_W_ = "TILE_W"
+TILE_N_ = "TILE_N"
+
+IA_BYTES_TO_LOAD_ = "IA_BYTES_TO_LOAD"
+
+
+# NOC packet type
+MEM_READ_REQ_ = "MEM_READ_REQ"
+MEM_WRITE_REQ_ = "MEM_READ_REQ"
+EXT_MEM_DATA_ = "EXT_MEM_DATA"
+
+CACHE_LINE_BYTES_ = 64

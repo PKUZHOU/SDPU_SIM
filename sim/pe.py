@@ -11,6 +11,27 @@ class PE(SimObj):
         self.eventQueue = None
         self.config_regs = []
     
+    def process_router_data(self, local_buffer):
+        for package in local_buffer:
+            #fill the weight buffer and sram buffer
+            IA_buffer = self.get_sram(IA_BUFFER_)
+            W_buffer = self.get_sram(W_BUFFER_)
+            
+            if(package == MULTICAST_):
+                IA_buffer.write(8) # 8 bytes
+            elif(package == UNICAST_):
+                W_buffer.write(8)
+
+        # invoke the computing
+        if(IA_buffer.remaining_bytes() > 64 and W_buffer.remaining_bytes() > 64):
+            # vector_MAC = self.get_vector_MAC()
+            event = Event(self.compute)
+            curTick = self.eventQueue.curTick
+            self.eventQueue.schedule(event, curTick + 1)
+    
+    def compute(self):
+        pass
+
     def get_type(self):
         return PE_
 
@@ -18,6 +39,7 @@ class PE(SimObj):
         router = Router(self.name().replace(PE_,"-".join([ROUTER_, PE_])))
         router.set_latency(acc_config["NOC_LATENCY"])
         router.set_bandwidth(acc_config["NOC_BANDWIDTH"])
+        router.handle_local_data_func = self.process_router_data
         self.add_module(router)
         return router
 
@@ -35,6 +57,7 @@ class PE(SimObj):
         sram = SRAM(sram_name)
         sram.set_depth(acc_config["{}_DEPTH".format(sram_type)])
         sram.set_width(acc_config["{}_WIDTH".format(sram_type)])
+        self.add_module(sram)
         return sram
 
     def get_sram(self, sram_type):
@@ -50,6 +73,10 @@ class PE(SimObj):
         MAC_vector = MAC_Vector(MAC_vector_name)
         MAC_vector.set_lanes(acc_config["LANES"])
         return MAC_vector
+
+    def get_vector_MAC(self):
+        MAC_vector_name = self.name().replace(PE_,MAC_VECTOR_)
+        return self.modules[MAC_vector_name]
 
     def configure(self, config):
         """

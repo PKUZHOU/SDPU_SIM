@@ -15,6 +15,9 @@ class SRAM(SimObj):
         # the occupied capacity
         self.used = 0
 
+    def remaining_bytes(self):
+        return self.width*self.used
+
     def get_type(self):
         return SRAM_
 

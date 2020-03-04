@@ -1,6 +1,7 @@
 #External memory
 EXT_MEM_BANDWIDTH: 25.6 #GBps
 EXT_MEM_CHANNELS: 4
+EXT_MEM_LATENCY: 40
 #package level
 
 W_TILE: 6

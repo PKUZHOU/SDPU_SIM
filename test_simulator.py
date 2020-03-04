@@ -11,11 +11,11 @@ acc_cfg = read_acc_config(acc_cfg_file)
 compiler = Compiler()
 
 #get the network 
-resnet50 = import_network('alex_net')
+model = import_network('alex_net')
 
 #load the cfg and network
 compiler.load_acc_cfg(acc_cfg)
-compiler.load_nn(resnet50)
+compiler.load_nn(model)
 
 #compile the network
 layers_config_regs = compiler.compile()
@@ -29,4 +29,3 @@ for per_layer_config_regs in layers_config_regs:
 sys.instantiate()
 sys.simulate()
 print("Simulation Finished!")
-

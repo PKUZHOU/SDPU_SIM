@@ -41,16 +41,31 @@ class System:
                 self.add_module(tile)
         
         #add external memory
-        ext_mem_name = EXT_MEM_
-        ext_mem = Ext_Memory(ext_mem_name)
-        ext_mem.configure(self.acc_config)
-        self.add_module(ext_mem)
+        for i in range(self.acc_config["EXT_MEM_CHANNELS"]):
+            if(i == 0):
+                tile_row = 0
+                tile_col = 0
+            elif(i == 1):
+                tile_row = 0
+                tile_col = Tile_cols - 1
+            elif(i == 2):
+                tile_row = Tile_rows - 1
+                tile_col = 0
+            elif(i == 3):
+                tile_row = Tile_rows - 1
+                tile_col = Tile_cols - 1
+            
+            ext_mem_name = "{}-{}-{}".format(EXT_MEM_,tile_row, tile_col)
+            ext_mem = Ext_Memory(ext_mem_name)
+            ext_mem.configure(self.acc_config)
+            self.add_module(ext_mem)
 
         #connect the modules
         self.connect_modules()
 
-    def get_ext_mem(self):
-        return self.modules[EXT_MEM_]
+    def get_ext_mem(self, tile_row, tile_col):
+        ext_mem_name = "{}-{}-{}".format(EXT_MEM_, tile_row, tile_col)
+        return self.modules[ext_mem_name]
 
     def get_tile(self, tile_row, tile_col):
         tile_name = "{}-{}-{}".format(TILE_,tile_row, tile_col)           
@@ -62,6 +77,7 @@ class System:
         """
         Tile_rows = self.acc_config["H_TILE"]
         Tile_cols = self.acc_config["W_TILE"] 
+
         for tile_row_id in range(Tile_rows):
             for tile_col_id in range(Tile_cols):
                 tile = self.get_tile(tile_row_id, tile_col_id)  
@@ -83,27 +99,28 @@ class System:
                     tile.connect_to(W_tile,'W')     
                 #EXT_MEM
                 if(tile_row_id == 0 and tile_col_id == 0):
-                    ext_mem = self.get_ext_mem()
+                    ext_mem = self.get_ext_mem(tile_row_id, tile_col_id)
                     corner_tile = self.get_tile(tile_row_id, tile_col_id)
                     corner_tile.connect_to(ext_mem, 'W')
                     ext_mem.connect_to(corner_tile,'E')
+
                 if(tile_row_id == 0 and tile_col_id == Tile_cols - 1):
-                    ext_mem = self.get_ext_mem()
+                    ext_mem = self.get_ext_mem(tile_row_id, tile_col_id)
                     corner_tile = self.get_tile(tile_row_id, tile_col_id)
                     corner_tile.connect_to(ext_mem, 'E')
                     ext_mem.connect_to(corner_tile,'W')
+
                 if(tile_row_id == Tile_rows-1 and tile_col_id == 0):
-                    ext_mem = self.get_ext_mem()
+                    ext_mem = self.get_ext_mem(tile_row_id, tile_col_id)
                     corner_tile = self.get_tile(tile_row_id, tile_col_id)
                     corner_tile.connect_to(ext_mem, 'S')
                     ext_mem.connect_to(corner_tile,'N')
+
                 if(tile_row_id == Tile_rows-1 and tile_col_id == Tile_cols - 1):
-                    ext_mem = self.get_ext_mem()
+                    ext_mem = self.get_ext_mem(tile_row_id, tile_col_id)
                     corner_tile = self.get_tile(tile_row_id, tile_col_id)
                     corner_tile.connect_to(ext_mem, 'N')
                     ext_mem.connect_to(corner_tile,'S')
-                    
-                    
 
     def instantiate(self):
         """
