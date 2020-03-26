@@ -1,6 +1,7 @@
 from .simobj import SimObj
 from .event import Event
 from .defines import *
+import time
 
 class Router(SimObj):
     def __init__(self,name):
@@ -22,6 +23,7 @@ class Router(SimObj):
     def local_processing(self):
         if(self.handle_local_data_func is not None):
             self.handle_local_data_func(self.local_buffer)
+        self.local_buffer.clear()
 
     def get_type(self):
         return ROUTER_
@@ -122,7 +124,13 @@ class Router(SimObj):
         return new_buffer
 
     def forward(self):
-        for packet in self.input_buffer:
+        # a = time.time()
+        unused_ports = []
+        for key in self.connected.keys():
+            unused_ports.append(key)
+
+        for packet_idx, packet in enumerate(self.input_buffer):
+
             # TODO: take the NOC bandwidth into consideration 
             # check if this packet is ready to be forwarded this time
             send_time = packet[3]
@@ -130,6 +138,7 @@ class Router(SimObj):
                 continue
             # the packet is ready to send 
             src_router, dst_router, packet_type, _ = packet
+
             # decode the current router name and the destination router name
             splited_cur_name = self.name().split("-")
             splited_dst_name = dst_router.split("-")
@@ -147,35 +156,9 @@ class Router(SimObj):
                         and cur_tile_col == dst_tile_col
 
             if(dst_router == self.name()):
-                #curent router is the destination.
-                # if(packet_type == UNICAST_):
-                #     # Unicast is the weight
-                #     self.local_buffer.append(UNICAST_)
-                #     event = Event(self.local_processing)
-                #     curTick = self.eventQueue.curTick
-                #     self.eventQueue.schedule(event, curTick+1)
-                #     continue
-                
-                # elif(packet_type == MULTICAST_):
-                #     # The package is MULTICAST, we need to pass it through.
-                #     if(not in_same_tile):
-                #         raise NotImplementedError
-                #     else:
-                #         if(cur_level != PE_):
-                #             # at present we only deal with the PE level multicast. 
-                #             raise NotImplementedError
-                #         else:
-                #             # the PE row and PE col.
-                #             cur_row = int(splited_cur_name[4])
-                #             cur_col = int(splited_cur_name[5])
-                #             # multicast along the row.
-                #             next_hop_col = cur_col + 1
-                #             next_hop_row = cur_row              
-                #             next_hop_name = "{}-{}-{}-{}-{}-{}".format(ROUTER_, PE_, cur_tile_row,\
-                #                 cur_tile_col, next_hop_row, next_hop_col)
-                #             dst_router = next_hop_name
                 self.local_buffer.append([src_router, dst_router, packet_type])
                 self.add_event(self.local_processing, latency = 1)
+                continue
 
             else:               
                 # the package is not for current router
@@ -252,7 +235,7 @@ class Router(SimObj):
                     # NOP to GBUF
                     elif(dst_level == GBUF_):
                         if(in_same_tile):
-                            next_hop_name = "{}-{}-{}-{}".format(ROUTER_,GBUF_,cur_pe_row,cur_pe_col)
+                            next_hop_name = "{}-{}-{}-{}".format(ROUTER_,GBUF_,cur_tile_row,cur_tile_col)
                         else:
                             # forward to other NOP
                             cur_tile_pos = [cur_tile_row,cur_tile_col]
@@ -260,13 +243,20 @@ class Router(SimObj):
                             next_hop_name = self.get_next_hop_nop_to_nop(cur_tile_pos, dst_tile_pos)
                 
             if next_hop_name in self.connected.keys():
-                next_hop_router = self.connected[next_hop_name]
-                next_hop_router.add_to_buffer(dst_router, packet_type)
-                when = self.eventQueue.curTick + self.latency
-                event = Event(next_hop_router.forward)
-                self.eventQueue.schedule(event, when)
-
+                if(next_hop_name in unused_ports):
+                    next_hop_router = self.connected[next_hop_name]
+                    next_hop_router.add_to_input_buffer(src_router, dst_router, packet_type, self.latency)
+                    # unused_ports.remove(next_hop_name)
+                else:
+                    pass
+                    # next_hop_router.add_to_input_buffer(src_router, dst_router, packet_type, self.latency + 1)
+                    # self.add_to_input_buffer(src_router, dst_router, next_hop_name, 1)
+                    # self.input_buffer[packet_idx][-1] += 1
+      
         self.input_buffer = self.cleared_input_buffer()
+        # print(time.time() - a )
+        # if(len(self.input_buffer)>0):
+        #     self.add_event(self.forward, 1)
 
     def configure(self, acc_configs, type):
         """

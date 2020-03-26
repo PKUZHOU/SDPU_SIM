@@ -9,7 +9,7 @@ from nn_dataflow.nns import import_network
 acc_cfg_file = "./accelerator_cfg.yaml"
 acc_cfg = read_acc_config(acc_cfg_file)
 compiler = Compiler()
-
+exit
 #get the network 
 model = import_network('alex_net')
 

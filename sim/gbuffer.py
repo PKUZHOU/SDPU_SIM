@@ -17,6 +17,23 @@ class GlobalBuffer(SimObj):
     def load_config_regs(self, config_regs):
         self.config_regs = config_regs
 
+    def handle_local_data_func(self, local_buffer):
+        router = self.get_router()
+        for packet in local_buffer:
+            _, _, packet_type = packet
+            if(packet_type == EXT_MEM_DATA_):
+                # TODO: write to local IA buffer
+                input_buffer = self.get_sram("INPUT")
+                # a flit = 64bit
+                input_buffer.write(8)
+                multicast_pe_col = self.state_regs["MULTICAST_PE_COL"] 
+                # multicast the input to a PE col
+                first_pe_name = "-".join([self.name().replace(GBUF_,"{}-{}".format(ROUTER_,PE_)),"{}-{}".format(multicast_pe_col, 0)])
+                router.add_to_input_buffer(router.name(), first_pe_name, MULTICAST_, 1 ) 
+                router.add_event(router.forward, 1)
+                total_pe_cols = self.acc_config["H_PE"]
+                self.state_regs["MULTICAST_PE_COL"] = (multicast_pe_col + 1)% total_pe_cols
+
     def add_sram(self, sram_type, acc_config):
         """
         Args: 
@@ -63,6 +80,7 @@ class GlobalBuffer(SimObj):
         # add the router
         router_name = self.name().replace(GBUF_,"{}-{}".format(ROUTER_,GBUF_))
         router = Router(router_name)
+        router.set_local_data_handler(self.handle_local_data_func)
         self.add_module(router)
         # add the input sram
         self.add_sram('INPUT', acc_config)
@@ -172,6 +190,7 @@ class GlobalBuffer(SimObj):
         IA_n = self.config_regs[TILE_N_]
         IA_bytes = IA_rows * IA_cols * IA_n
         self.state_regs[IA_BYTES_TO_LOAD_] = IA_bytes
+        self.state_regs["MULTICAST_PE_COL"] = 0
         # Load input activation from the external memory 
         self.add_event(self.load_IA,1)
 

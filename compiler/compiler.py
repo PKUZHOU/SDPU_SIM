@@ -112,13 +112,15 @@ class Compiler:
                             pe_row_id, pe_col_id)
                         pe_config_reg = {}
                         # # calculate the loops per PE 
-                        # n_loops = max(per_pe_o//Lanes, 1) * max(per_pe_n//Vector_width, 1)\
-                        #     * per_tile_R * C * K * K
                         pe_config_reg[PE_O_] = per_pe_o[pe_col_id]
                         pe_config_reg[PE_N_] = per_pe_n[pe_row_id]
                         pe_config_reg[PE_H_] = per_tile_r[tile_row_id*Tile_rows+tile_row_id]  * S + K
                         pe_config_reg[PE_W_] = per_tile_c[tile_row_id*Tile_rows+tile_row_id] * S + K 
+                        pe_config_reg[PE_R_] = per_tile_r[tile_row_id*Tile_rows+tile_row_id]
+                        pe_config_reg[PE_C_] = per_tile_c[tile_row_id*Tile_rows+tile_row_id]
                         pe_config_reg[PE_S_] = S
+                        pe_config_reg[PE_K_] = K
+
                         #disable the invalid PEs
                         if(pe_config_reg[PE_O_] == 0 or\
                            pe_config_reg[PE_N_] == 0 or\
@@ -128,6 +130,9 @@ class Compiler:
                            pe_config_reg[PE_N_] = 0
                            pe_config_reg[PE_H_] = 0
                            pe_config_reg[PE_W_] = 0
+                           pe_config_reg[PE_R_] = 0
+                           pe_config_reg[PE_C_] = 0
+
 
                         tile_config_regs[pe_name] = pe_config_reg
                 

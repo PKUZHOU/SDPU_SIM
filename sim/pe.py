@@ -4,33 +4,58 @@ from .router import Router
 from .sram import SRAM
 from .mac_vector import MAC_Vector
 from .defines import *
+import math
 
 class PE(SimObj):
     def __init__(self,name):
         super(PE,self).__init__(name)
         self.eventQueue = None
         self.config_regs = []
+        self.acc_config = None
     
     def process_router_data(self, local_buffer):
-        for package in local_buffer:
+        for packet in local_buffer:
             #fill the weight buffer and sram buffer
             IA_buffer = self.get_sram(IA_BUFFER_)
             W_buffer = self.get_sram(W_BUFFER_)
             
-            if(package == MULTICAST_):
+            src, dst, packet_type = packet 
+            if(packet_type == MULTICAST_):
+
                 IA_buffer.write(8) # 8 bytes
-            elif(package == UNICAST_):
+                # forward to the adjacent 
+                cur_col = int(self.name().split('-')[-1])
+                total_col = self.acc_config["W_PE"]
+                next_col = cur_col + 1
+                if(next_col < total_col):
+                    router = self.get_router()
+                    next_name = router.name().split('-')
+                    next_name[-1] = str(next_col)
+                    next_name = "-".join(next_name)
+                    router.add_to_input_buffer(self.name(), next_name, MULTICAST_, 1)
+                    router.add_event(router.forward, 1)
+
+            elif(packet_type == UNICAST_):
                 W_buffer.write(8)
 
-        # invoke the computing
-        if(IA_buffer.remaining_bytes() > 64 and W_buffer.remaining_bytes() > 64):
-            # vector_MAC = self.get_vector_MAC()
-            event = Event(self.compute)
-            curTick = self.eventQueue.curTick
-            self.eventQueue.schedule(event, curTick + 1)
+        # # invoke the computing
+        # if(IA_buffer.remaining_bytes() > 64 and W_buffer.remaining_bytes() > 64):
+        #     # vector_MAC = self.get_vector_MAC()
+        #     event = Event(self.compute)
+        #     curTick = self.eventQueue.curTick
+        #     self.eventQueue.schedule(event, curTick + 1)
     
     def compute(self):
-        pass
+        out_channels = self.config_regs[PE_O_]
+        input_channels = self.config_regs[PE_N_]
+        input_w = self.config_regs[PE_W_]
+        input_h = self.config_regs[PE_H_]
+        out_channel_passes = math.ceil(out_channels/8.)
+        input_channel_passes = math.ceil(input_channels/8.)
+        r = self.config_regs[PE_R_]
+        c = self.config_regs[PE_C_]
+        k = self.config_regs[PE_K_]
+        passes = k * k * r * c * out_channel_passes * input_channel_passes
 
     def get_type(self):
         return PE_
@@ -87,6 +112,7 @@ class PE(SimObj):
         Returns:
             No returns
         """
+        self.acc_config = config
         #IA buffer
         IA_buffer = self.add_sram(IA_BUFFER_,config)
         #W buffer

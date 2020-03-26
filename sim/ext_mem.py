@@ -24,7 +24,7 @@ class Ext_Memory(SimObj):
             src, dst, packet_type = packet
             if(packet_type == MEM_READ_REQ_):
                 for i in range (CACHE_LINE_BYTES_//8):
-                    router.add_to_input_buffer(router.name, src, i + self.acc_config, EXT_MEM_DATA_, ['EXT_MEM_LATENCY'])
+                    router.add_to_input_buffer(router.name(), src,  EXT_MEM_DATA_,i + self.acc_config['EXT_MEM_LATENCY'])
 
     def get_router(self):
         router_name = self.name().replace(EXT_MEM_,"-".join([ROUTER_, EXT_MEM_]))

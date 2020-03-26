@@ -2,7 +2,7 @@ from queue import PriorityQueue
 from collections import OrderedDict
 
 class Event:
-    def __init__(self, call_back):
+    def __init__(self, call_back, name = ""):
         self.when = 0 # when will this event be processed
         self.eventQueue = None # the eventQueue that holds this event
         self.call_back = call_back # the function that processes this event

@@ -15,8 +15,10 @@ program. If not, see <https://opensource.org/licenses/BSD-3-Clause>.
 """
 
 from collections import OrderedDict
+from collections import defaultdict 
 
 from .layer import Layer, InputLayer
+
 
 class Network():
     '''
@@ -31,6 +33,8 @@ class Network():
         self.prevs_dict = {}
         self.nexts_dict = {}
         self.ext_dict = OrderedDict()
+
+        self.graph = defaultdict(list)
 
     def set_input_layer(self, input_layer):
         '''

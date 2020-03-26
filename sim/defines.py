@@ -25,6 +25,7 @@ PE_C_ = "PE_C"
 PE_H_ = "PE_H"
 PE_W_ = "PE_W"
 PE_S_ = "S"
+PE_K_ = "K"
 
 TILE_H_ = "TILE_H"
 TILE_W_ = "TILE_W"

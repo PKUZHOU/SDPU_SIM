@@ -12,13 +12,13 @@ class NOP(SimObj):
         return NOP_
 
     def configure(self, acc_config):
-        router_name = self.name().replace(NOP_,"{}-{}".format(NOP_,ROUTER_))
+        router_name = self.name().replace(NOP_,"{}-{}".format(ROUTER_,NOP_))
         router = Router(router_name)
         router.configure(acc_config,NOP_)
         self.add_module(router)
 
     def get_router(self):
-        router = self.modules[self.name().replace(NOP_,"{}-{}".format(NOP_, ROUTER_))]
+        router = self.modules[self.name().replace(NOP_,"{}-{}".format(ROUTER_,NOP_ ))]
         return router
 
     def connect_to(self, neighbor, direction):
