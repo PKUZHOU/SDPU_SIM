@@ -11,6 +11,8 @@ class GlobalBuffer(SimObj):
         self.eventQueue = None
         self.state_regs = {}
         self.acc_config = None
+        self.first_IA = True
+
     def get_type(self):
         return GBUF_
 
@@ -28,7 +30,8 @@ class GlobalBuffer(SimObj):
                 input_buffer.write(8)
                 multicast_pe_col = self.state_regs["MULTICAST_PE_COL"] 
                 # multicast the input to a PE col
-                first_pe_name = "-".join([self.name().replace(GBUF_,"{}-{}".format(ROUTER_,PE_)),"{}-{}".format(multicast_pe_col, 0)])
+                first_pe_name = "-".join([self.name().replace(GBUF_,"{}-{}".format(ROUTER_,PE_)),\
+                    "{}-{}".format(multicast_pe_col, 0)])
                 router.add_to_input_buffer(router.name(), first_pe_name, MULTICAST_, 1 ) 
                 router.add_event(router.forward, 1)
                 total_pe_cols = self.acc_config["H_PE"]
@@ -87,102 +90,52 @@ class GlobalBuffer(SimObj):
         self.add_sram('WEIGHT',acc_config)
         self.add_sram('OUTPUT',acc_config)
 
-    def send_packet(self, dst, packet_type):
-        # local router
-        router = self.get_router()
-        src = router.name()
-        # send the packet through local router
-        # take 4 cycles to shape the packet and write to the router buffer
-        router.add_to_input_buffer( src, dst, packet_type, send_delay = 4)
-        
-        #router.add_event(router.forward, latency = 4)
-
-    def multicast_inputs(self):
-        """
-        Read the input data from input sram and send them to different PE rows through NOC
-        """
-        input_sram = self.get_sram("INPUT")
-        # multicast to each PE row
-        PE_rows = self.config_regs['PE_ROWS']
-        for row in range(PE_rows):
-            bytes_in_word = 8
-            ret = input_sram.read(bytes_in_word)
-            if(ret == 0):
-                # the first PE of each row
-                dst_router_name = self.name().replace(GBUF_,"{}-{}".format(ROUTER_,PE_))\
-                    + "-{}-{}".format(row, 0)
-                self.send_packet(dst_router_name, MULTICAST_)
-            else:
-                return
-        # start another pass in the next tick 
-        multicast_event = Event(self.multicast_inputs)
-        curTick = self.eventQueue.curTick
-        self.eventQueue.schedule(multicast_event,curTick + 1)
-
-    def unicast_weights(self):
-        """
-        Read the weight data from weight sram and send them to different PE through NOC
-        """
-        weight_sram = self.get_sram("WEIGHT")
-        # unicast to each PE
-        # TODO: consider the NOC bandwidth
-        PE_rows = self.config_regs['PE_ROWS']
-        PE_cols = self.config_regs['PE_COLS']
-        for row in range(PE_rows):
-            for col in range(PE_cols):
-                bytes_in_word = 8
-                ret = weight_sram.read(bytes_in_word)
-                if(ret == 0):
-                    # the first PE of each row
-                    dst_router_name = self.name().replace(GBUF_,"{}-{}".format(ROUTER_,PE_))\
-                        + "-{}-{}".format(row,col)
-                    self.send_packet(dst_router_name, UNICAST_)
-                else:
-                    return
-        # start another pass in the next tick 
-        multicast_event = Event(self.multicast_inputs)
-        curTick = self.eventQueue.curTick
-        self.eventQueue.schedule(multicast_event,curTick + 1)
-
     def load_IA(self):
-        if(self.state_regs[IA_BYTES_TO_LOAD_] > 0):
-            # The total input activation bytes of this tile
-            # One cache line size 64B per transaction
-            # Send read request to memory controller 
-            tile_row_idx = int(self.name().split("-")[1])
-            tile_col_idx = int(self.name().split("-")[2])
-            total_row = int(self.acc_config["H_TILE"])
-            total_col = int(self.acc_config["W_TILE"])
+        if(not self.first_IA):
+            self.add_event(self.send_IA,1)
+            self.first_IA = True
+        else:
+            IA_Bytes = self.state_regs[IA_BYTES_TO_LOAD_]
+            ext_mem = self.global_modules[EXT_MEM_]
+            ext_mem.query(IA_Bytes,self.send_IA)
 
-            if tile_row_idx <= total_row//2:
-                target_row = 0
-            else:
-                target_row = total_row - 1
-            if tile_col_idx <= total_col//2:
-                target_col = 0
-            else:
-                target_col = total_col -1
-
-            dst_router = "{}-{}-{}-{}".format(ROUTER_,EXT_MEM_, target_row, target_col)
-            self.send_packet(dst = dst_router, packet_type = MEM_READ_REQ_)
-            self.state_regs[IA_BYTES_TO_LOAD_] -= CACHE_LINE_BYTES_
-            self.add_event(self.load_IA, latency = 1)
+    def load_W(self):
+        load_from_ext_mem = self.config_regs["LOAD_W"]
+        W_Bytes = self.state_regs[W_BYTES_TO_LOAD_]
+        ext_mem = self.global_modules[EXT_MEM_]
+        if(load_from_ext_mem):
+            ext_mem.query(W_Bytes,self.send_W)
+        else:
+            # the weight is broadcast
+            self.add_event(self.send_W,1)
 
     def send_IA(self):
         # The PE array shape of this tile
+        PE_rows = self.config_regs['PE_ROWS']
+        PE_cols = self.config_regs['PE_COLS']
+        for pe_row_id in range(PE_rows):
+            for pe_col_id in range(PE_cols):
+                pe_name = self.name().replace(GBUF_,PE_)\
+                    + "-{}-{}".format(pe_row_id, pe_col_id)
+                pe = self.global_modules[pe_name]
+                pe.add_event(pe.load_IA,1)
 
-        # PE_rows = self.config_regs['PE_ROWS']
-        # PE_cols = self.config_regs['PE_COLS']
-        # input_sram = self.get_sram("INPUT")
-        # assert(ret == 0)
-        # weight_sram = self.get_sram("WEIGHT")
-        # assert(ret == 0)
-        raise NotImplementedError
+    def send_W(self):
+        # The PE array shape of this tile
+        PE_rows = self.config_regs['PE_ROWS']
+        PE_cols = self.config_regs['PE_COLS']
+        for pe_row_id in range(PE_rows):
+            for pe_col_id in range(PE_cols):
+                pe_name = self.name().replace(GBUF_,PE_)\
+                    + "-{}-{}".format(pe_row_id, pe_col_id)
+                pe = self.global_modules[pe_name]
+                pe.add_event(pe.load_W, 1)
 
     def startup(self, eventQueue):
         for module in self.modules.values():
             module.startup(eventQueue)
-        self.eventQueue = eventQueue
+        if(self.eventQueue is None):
+            self.eventQueue = eventQueue
 
         # the IA_bytes to load
         IA_rows = self.config_regs[TILE_H_]
@@ -190,9 +143,16 @@ class GlobalBuffer(SimObj):
         IA_n = self.config_regs[TILE_N_]
         IA_bytes = IA_rows * IA_cols * IA_n
         self.state_regs[IA_BYTES_TO_LOAD_] = IA_bytes
-        self.state_regs["MULTICAST_PE_COL"] = 0
+
+        K = self.config_regs[TILE_K_]
+        W_o = self.config_regs[TILE_O_]
+        W_n = self.config_regs[TILE_N_]
+        W_bytes = K*K*W_o*W_n
+        self.state_regs[W_BYTES_TO_LOAD_] = W_bytes
+
         # Load input activation from the external memory 
         self.add_event(self.load_IA,1)
+        self.add_event(self.load_W,1)
 
 
 

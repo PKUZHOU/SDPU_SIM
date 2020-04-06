@@ -11,27 +11,17 @@ class Tile(SimObj):
         super(Tile,self).__init__(name)
         self.eventQueue = None
         self.acc_config = None 
-    
+        self.status = {}
+        self.finished_tiles = None
+        self.finished_PEs = 0 
+
     def get_type(self):
         return TILE_
-
-    def add_NOP(self):
-        nop_name = self.name().replace(TILE_,NOP_)
-        nop = NOP(nop_name)
-        nop.configure(self.acc_config)
-        self.add_module(nop)
-
-    def get_NOP(self):
-        nop_name = self.name().replace(TILE_,NOP_)
-        return self.modules[nop_name]
-
-    def get_router(self):
-        router = self.get_NOP().get_router()
-        return router
 
     def add_gbuf(self):
         gbuf_name = self.name().replace(TILE_,GBUF_)
         gbuf = GlobalBuffer(gbuf_name)
+        gbuf.set_global_modules(self.global_modules)
         gbuf.configure(self.acc_config)
         self.add_module(gbuf)
 
@@ -50,6 +40,7 @@ class Tile(SimObj):
                     '-{}-{}'.format(pe_row_id, pe_col_id)
                 pe = PE(pe_name)
                 #configure the PE, eg. SRAM depth and width
+                pe.set_global_modules(self.global_modules)
                 pe.configure(self.acc_config)
                 self.add_module(pe)
 
@@ -62,76 +53,25 @@ class Tile(SimObj):
     def configure(self,acc_config):
         self.acc_config = acc_config
         #add the router
-        self.add_NOP()
+        # self.add_NOP()
         #add the global buffer
         self.add_gbuf()
         #add the PEs
         self.add_PEs()
         #connect this modules
-        self.connect_modules()
-
-    def connect_to(self, neighbor, direction):
-        """
-        Set the router to connect the neighbor tile
-        Args: 
-            neighbor_tile: the neighbor tile to connect
-            direction: "N","S","W","E" 
-        Returns:
-            No returns
-        """
-        router = self.get_router() 
-        neighbor_router = neighbor.get_router()
-        router.set_neighbor(neighbor_router, direction)
-
-    def connect_modules(self):
-        """
-        Connect the tile level modules
-        """
-        #connect the PEs
-        PE_rows = self.acc_config["H_PE"]
-        PE_cols = self.acc_config["W_PE"] 
-        for pe_row_id in range(PE_rows):
-            for pe_col_id in range(PE_cols):
-                pe = self.get_PE(pe_row_id, pe_col_id)
-                #N direction
-                if(pe_row_id > 0):            
-                    N_pe = self.get_PE(pe_row_id, pe_col_id)
-                    pe.connect_to(N_pe,'N')
-                #E direction
-                if(pe_col_id < PE_cols - 1):      
-                    E_pe = self.get_PE(pe_row_id, pe_col_id+1)
-                    pe.connect_to(E_pe,'E')
-                #S direction
-                if(pe_row_id < PE_rows - 1):             
-                    S_pe = self.get_PE(pe_row_id + 1, pe_col_id)
-                    pe.connect_to(S_pe,'S')
-                #W direction
-                if(pe_col_id > 0):           
-                    W_pe = self.get_PE(pe_row_id, pe_col_id-1)
-                    pe.connect_to(W_pe,'W')          
-        
-        #connect the global buffer
-        gbuffer_name = self.name().replace(TILE_,GBUF_)
-        gbuffer = self.modules[gbuffer_name]
-        #connect to the first PE TODO: more than one routers in a global_buffer
-        first_pe = self.get_PE(0,0)
-        gbuffer.connect_to(first_pe,'E')
-        #connect the first pe to this gbuffer
-        first_pe.connect_to(gbuffer,'W')
-        #connect the gbuffer with the NOP router
-        NOP = self.get_NOP()
-        gbuffer.connect_to(NOP,'W')
-        #the local port
-        NOP.connect_to(gbuffer,'L')
+        # self.connect_modules()
 
     def load_config_regs(self, tile_config_regs):
         for module_name, config_regs in tile_config_regs.items():
             self.modules[module_name].load_config_regs(config_regs)
 
     def startup(self, eventQueue):
-        self.eventQueue = eventQueue
+        if(self.eventQueue is None):
+            self.eventQueue = eventQueue
         for module in self.modules.values():
             module.startup(eventQueue)
 
-    def processEvent(self):
-        print("Hello from ", self.name())
+    def check_finish(self):
+        if(self.finished_PEs == self.acc_config["TOTAL_PE"]):
+            self.finished_tiles.append(self.name())
+            self.finished_PEs = 0

@@ -35,7 +35,8 @@ class NOP(SimObj):
         router.set_neighbor(neighbor_router, direction)
 
     def startup(self, eventQueue):
-        self.eventQueue = eventQueue
+        if(self.eventQueue is None):
+            self.eventQueue = eventQueue
         for module in self.modules.values():
             module.startup(eventQueue)
         

@@ -5,7 +5,9 @@ class SimObj:
         self.obj_name = name
         self.type = ""
         self.modules = {}
+        self.global_modules = None
         self.eventQueue = None
+
 
     def add_event(self, call_back_func, latency):
         assert self.eventQueue is not None
@@ -15,7 +17,11 @@ class SimObj:
 
     def add_module(self, module):
         self.modules[module.obj_name] = module
+        self.global_modules[module.obj_name] = module
     
+    def set_global_modules(self, global_modules):
+        self.global_modules = global_modules
+
     def get_type(self):
         return self.type
 

@@ -57,7 +57,8 @@ class SRAM(SimObj):
                 return 0
 
     def startup(self, eventQueue):
-        self.eventQueue = eventQueue
+        if(self.eventQueue is None):
+            self.eventQueue = eventQueue
         for module in self.modules.values():
             module.startup(eventQueue)
         # eventQueue.schedule(self.event, 100)

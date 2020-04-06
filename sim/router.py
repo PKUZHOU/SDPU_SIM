@@ -290,6 +290,7 @@ class Router(SimObj):
         self.connected[router.name()] = router
 
     def startup(self, eventQueue):
-        self.eventQueue = eventQueue
+        if(self.eventQueue is None):
+            self.eventQueue = eventQueue
         for module in self.modules.values():
             module.startup(eventQueue)
