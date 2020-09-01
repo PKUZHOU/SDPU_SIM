@@ -15,7 +15,6 @@ class ExecutionModels:
         self.BW_tile = BW/freq/total_Tile
         self.nPE = acc_config["TOTAL_PE"]
 
-
     def t_conv_compute(self, M,N,R,C,K,nTile):
         Tr = R
         Tc = math.ceil(float(C)/nTile)
