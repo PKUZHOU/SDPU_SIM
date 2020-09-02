@@ -1,8 +1,6 @@
 from .simobj import SimObj
 from .event import Event
-from .router import Router
 import math 
-from .defines import *
 
 class SRAM(SimObj):
     def __init__(self,name):
@@ -15,11 +13,10 @@ class SRAM(SimObj):
         # the occupied capacity
         self.used = 0
 
+        self.size = 0
+
     def remaining_bytes(self):
         return self.width*self.used
-
-    def get_type(self):
-        return SRAM_
 
     def set_depth(self, depth):
         self.depth = depth

@@ -36,15 +36,15 @@ class TaskQueue:
         self.tasks.append(task)
         self.total_tasks += 1
 
-    def assign_tiles(self, allocation):
-        """
-        Assign tiles to each task (in tile ids)
-        """
-        base = 0
-        for i in range(self.total_tasks):
-            for j in range(allocation[i]):
-                self.tasks[i].assigned_tiles.append(base + j)
-            base += allocation[i]
+    # def assign_tiles(self, allocation):
+    #     """
+    #     Assign tiles to each task (in tile ids)
+    #     """
+    #     base = 0
+    #     for i in range(self.total_tasks):
+    #         for j in range(allocation[i]):
+    #             self.tasks[i].assigned_tiles.append(base + j)
+    #         base += allocation[i]
 
     def __len__(self):
         return len(self.tasks)
